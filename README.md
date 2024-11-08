@@ -2,7 +2,7 @@
 
 ## Overview
 
-This CSPRNG, built with the ChaCha algorithm, generates secure random numbers ideal for cryptographic applications in Motoko.<br>
+This CSPRNG, built with the ChaCha algorithm, generates secure random numbers ideal for cryptographic applications in Motoko.  
 Unlike typical pseudo-random number generators (PRNGs), which are often predictable and lack robustness, this generator ensures high entropy, unpredictability, and resilience against cryptographic attacks.
 
 ### Key Features
@@ -14,14 +14,14 @@ Unlike typical pseudo-random number generators (PRNGs), which are often predicta
 
 ## Links
 
-The package is published on [Mops](https://mops.one/csprng) and [GitHub](https://github.com/temokoki/IC_CSPRNG).<br>
+The package is published on [Mops](https://mops.one/csprng) and [GitHub](https://github.com/temokoki/IC_CSPRNG).  
 See usage example on [Motoko Playground](https://m7sm4-2iaaa-aaaab-qabra-cai.raw.ic0.app/?tag=371826834)
 
 ## Usage
 
 ### Install with mops
 
-You need [Mops](https://docs.mops.one/quick-start) installed.<br>
+You need [Mops](https://docs.mops.one/quick-start) installed.  
 In your project directory run:
 
 ```
