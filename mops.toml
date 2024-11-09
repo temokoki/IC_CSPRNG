@@ -1,6 +1,6 @@
 [package]
 name = "csprng"
-version = "1.0.2"
+version = "1.0.3"
 description = "Cryptographically secure pseudo-random number generator using the ChaCha algorithm"
 repository = "https://github.com/temokoki/IC_CSPRNG"
 keywords = [ "random", "rng", "prng", "csprng", "chacha" ]
