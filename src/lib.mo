@@ -41,18 +41,18 @@ module {
     //-----------------------------
 
     let key = BlobToNat32Array(keyBlob);
-    let nonce = BlobToNat32Array(keyBlob);
+    let nonce = BlobToNat32Array(nonceBlob);
 
     let baseState : [Nat32] = [
       0x61707865, 0x3320646E, 0x79622D32, 0x6B206574,
       key[0], key[1], key[2], key[3],
       key[4], key[5], key[6], key[7],
-      0,  nonce[0],  nonce[1],  nonce[2]
+      1,  nonce[0],  nonce[1],  nonce[2]
     ];
 
     let byteBuffer : [var Nat8] = Array.init<Nat8>(64, 0);
     var bufferIndex : Nat = 64; // Start with byteBuffer needing refill
-    var stateCounter : Nat32 = 0;
+    var stateCounter : Nat32 = 1;
 
     func quarterRound(state: [var Nat32], a: Nat, b: Nat, c: Nat, d: Nat) {
       state[a] +%= state[b];  state[d] ^= state[a]; state[d] <<>= 16;
@@ -119,8 +119,8 @@ module {
     };
 
     public func getRandomNumber(min : Nat, max : Nat) : Nat {
-      assert (max > min);
-      let rangeSize = max - min + 1;
+      let rangeSize = max - min;
+      assert (rangeSize > 0);
 
       // Determine the minimum number of bytes needed to represent the range size
       let byteCount = if (rangeSize <= 0xFF) { 1 }
@@ -132,9 +132,13 @@ module {
                     else if (rangeSize <= 0xFFFFFFFFFFFFFF) { 7 }
                     else { 8 };
 
-    
-      let number = NatFromBytes(getRandomBytes(byteCount));
-      return min + (number % rangeSize);
+      var number = NatFromBytes(getRandomBytes(byteCount));
+
+      //Using rejection sampling to avoid bias
+      while (number > rangeSize)
+          number := NatFromBytes(getRandomBytes(byteCount));
+
+      return min + number
     };
 
     public func getRandomNumbers(min : Nat, max : Nat, count : Nat) : [Nat] {
