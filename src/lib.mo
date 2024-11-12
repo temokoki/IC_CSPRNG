@@ -1,8 +1,8 @@
 import Blob "mo:base/Blob";
 import Nat "mo:base/Nat";
 import Nat8 "mo:base/Nat8";
-import Nat16 "mo:base/Nat16";
 import Nat32 "mo:base/Nat32";
+import Nat64 "mo:base/Nat64";
 import Array "mo:base/Array";
 import Iter "mo:base/Iter";
 
@@ -12,33 +12,18 @@ module {
     assert nonceBlob.size() >= 12;
     assert roundCount >= 8 and roundCount <= 20;
 
-    //----- Utility functions -----
     func BlobToNat32Array(b : Blob) : [Nat32] {
       let bytes = Blob.toArray(b);
       let length = bytes.size() / 4;
 
       Array.tabulate<Nat32>(length, func(i) {
-        let index = i * 4;
-        Nat32FromBytes([bytes[index], bytes[index + 1], bytes[index + 2], bytes[index + 3]])
+          let index = i * 4;
+          (Nat32.fromNat(Nat8.toNat(bytes[index])) << 24) +
+          (Nat32.fromNat(Nat8.toNat(bytes[index + 1])) << 16) +
+          (Nat32.fromNat(Nat8.toNat(bytes[index + 2])) << 8) +
+          Nat32.fromNat(Nat8.toNat(bytes[index + 3]))
       });
     };
-
-    func Nat32FromBytes(bytes : [Nat8]) : Nat32 {
-      var result : Nat32 = 0;
-      for (i in Iter.range(0, bytes.size() - 1)) {
-        result := (result << 8) + Nat16.toNat32(Nat16.fromNat8(bytes[i]));
-      };
-      return result;
-    };
-
-    func NatFromBytes(bytes : [Nat8]) : Nat {
-      var result : Nat = 0;
-      for (i in Iter.range(0, bytes.size() - 1)) {
-        result := Nat.bitshiftLeft(result, 8) + Nat8.toNat(bytes[i]);
-      };
-      return result;
-    };
-    //-----------------------------
 
     let key = BlobToNat32Array(keyBlob);
     let nonce = BlobToNat32Array(nonceBlob);
@@ -64,7 +49,7 @@ module {
     func chachaBlock() {
       let workingState = Array.tabulateVar<Nat32>(baseState.size(), func(i) { baseState[i] });
       workingState[12] := stateCounter;
-      stateCounter += 1;
+      stateCounter +%= 1;
 
       // Apply the ChaCha rounds to the workingState
       for (i in Iter.range(0, roundCount / 2 - 1)) {
@@ -92,8 +77,6 @@ module {
         byteBuffer[4 * i + 2] := Nat8.fromIntWrap(Nat32.toNat(currentState >> 8));
         byteBuffer[4 * i + 3] := Nat8.fromIntWrap(Nat32.toNat(currentState));
       };
-
-      bufferIndex := 0;
     };
 
     public func getRandomBytes(byteCount : Nat) : [Nat8] {
@@ -104,6 +87,7 @@ module {
         // Refill byteBuffer if exhausted
         if (bufferIndex >= 64) {
           chachaBlock();
+          bufferIndex := 0;
         };
 
         // Copy from byteBuffer
@@ -118,31 +102,41 @@ module {
       return Array.freeze<Nat8>(result);
     };
 
-    public func getRandomNumber(min : Nat, max : Nat) : Nat {
+    public func getRandomNumber(min : Nat64, max : Nat64) : Nat {
       let rangeSize = max - min;
-      assert (rangeSize > 0);
+      if (rangeSize <= 0) return Nat64.toNat(min);
 
-      // Determine the minimum number of bytes needed to represent the range size
-      let byteCount = if (rangeSize <= 0xFF) { 1 }
-                    else if (rangeSize <= 0xFFFF) { 2 }
-                    else if (rangeSize <= 0xFFFFFF) { 3 }
-                    else if (rangeSize <= 0xFFFFFFFF) { 4 }
-                    else if (rangeSize <= 0xFFFFFFFFFF) { 5 }
-                    else if (rangeSize <= 0xFFFFFFFFFFFF) { 6 }
-                    else if (rangeSize <= 0xFFFFFFFFFFFFFF) { 7 }
-                    else { 8 };
-
-      var number = NatFromBytes(getRandomBytes(byteCount));
-
-      //Using rejection sampling to avoid bias
-      while (number > rangeSize)
-          number := NatFromBytes(getRandomBytes(byteCount));
-
-      return min + number
+      let (byteCount, bitMask) = calculateByteCountBitMask(rangeSize);
+      return Nat64.toNat(min + generateNumber(rangeSize, byteCount, bitMask))
     };
 
-    public func getRandomNumbers(min : Nat, max : Nat, count : Nat) : [Nat] {
-      Array.tabulate<Nat>(count, func(_) { getRandomNumber(min, max) });
+    public func getRandomNumbers(min : Nat64, max : Nat64, count : Nat) : [Nat] {
+      if (count == 0) return [];
+      let rangeSize = max - min;
+      if (rangeSize <= 0) return [Nat64.toNat(min)];
+
+      let (byteCount, bitMask) = calculateByteCountBitMask(rangeSize);
+      return Array.tabulate<Nat>(count, func(_) {
+          Nat64.toNat(min + generateNumber(rangeSize, byteCount, bitMask))
+      });
+    };
+
+    func calculateByteCountBitMask(rangeSize : Nat64) : (Nat, Nat64) {
+      let bitCount = 64 - Nat64.bitcountLeadingZero(rangeSize);
+      let byteCount = Nat64.toNat((bitCount + 7) >> 3);
+      let bitMask = (1 << bitCount) - 1;
+      return (byteCount, bitMask);
+    };
+
+    func generateNumber(rangeSize : Nat64, byteCount : Nat, bitMask : Nat64) : Nat64 {
+      // Using rejection sampling to avoid bias
+      loop {
+        let bytes = getRandomBytes(byteCount);
+        var number : Nat64 = 0;
+        for (byte in bytes.vals()) number := (number << 8) | Nat64.fromNat(Nat8.toNat(byte)); //convert bytes to Nat64 number
+        number &= bitMask; // Discard extra bits beyond the required bit range
+        if (number <= rangeSize) return number;
+      };
     };
   };
 };

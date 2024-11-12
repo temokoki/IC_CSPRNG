@@ -15,7 +15,7 @@ Unlike typical pseudo-random number generators (PRNGs), which are often predicta
 ## Links
 
 The package is published on [Mops](https://mops.one/csprng) and [GitHub](https://github.com/temokoki/IC_CSPRNG).  
-See usage example on [Motoko Playground](https://m7sm4-2iaaa-aaaab-qabra-cai.raw.ic0.app/?tag=616499047)
+See usage example on [Motoko Playground](https://m7sm4-2iaaa-aaaab-qabra-cai.raw.ic0.app/?tag=1915324803)
 
 ## Usage
 
@@ -40,7 +40,7 @@ import ChaChaRNG "mo:csprng";
 import ChaChaRNG "mo:csprng";
 
 // Note: Use unique key and nonce blobs for your dapp. See example with random key and nonce generation on Motoko Playground:
-// https://m7sm4-2iaaa-aaaab-qabra-cai.raw.ic0.app/?tag=616499047
+// https://m7sm4-2iaaa-aaaab-qabra-cai.raw.ic0.app/?tag=1915324803
 
 let key : Blob = "\14\C9\72\09\03\D4\D5\72\82\95\E5\43\AF\FA\A9\44\49\2F\25\56\13\F3\6E\C7\B0\87\DC\76\08\69\14\CF";
 let nonce : Blob = "\E5\43\AF\FA\A9\44\49\2F\25\56\13\F3";
